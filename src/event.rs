@@ -72,6 +72,8 @@ pub enum Event<'a, T: 'static> {
 
     OpenFilesEvent(Vec<String>),
 
+    OpenUrlsEvent(Vec<String>),
+
     /// Emitted when the application has been suspended.
     Suspended,
 
@@ -137,6 +139,7 @@ impl<T: Clone> Clone for Event<'static, T> {
             MainEventsCleared => MainEventsCleared,
             RedrawRequested(wid) => RedrawRequested(*wid),
             OpenFilesEvent(files) => OpenFilesEvent(files.clone()),
+            OpenUrlsEvent(urls) => OpenUrlsEvent(urls.clone()),
             RedrawEventsCleared => RedrawEventsCleared,
             LoopDestroyed => LoopDestroyed,
             Suspended => Suspended,
@@ -156,6 +159,7 @@ impl<'a, T> Event<'a, T> {
             MainEventsCleared => Ok(MainEventsCleared),
             RedrawRequested(wid) => Ok(RedrawRequested(wid)),
             OpenFilesEvent(files) => Ok(OpenFilesEvent(files)),
+            Event::OpenUrlsEvent(urls) => Ok(OpenUrlsEvent(urls)),
             RedrawEventsCleared => Ok(RedrawEventsCleared),
             LoopDestroyed => Ok(LoopDestroyed),
             Suspended => Ok(Suspended),
@@ -177,6 +181,7 @@ impl<'a, T> Event<'a, T> {
             MainEventsCleared => Some(MainEventsCleared),
             RedrawRequested(wid) => Some(RedrawRequested(wid)),
             OpenFilesEvent(files) => Some(OpenFilesEvent(files)),
+            Event::OpenUrlsEvent(urls) => Some(OpenUrlsEvent(urls)),
             RedrawEventsCleared => Some(RedrawEventsCleared),
             LoopDestroyed => Some(LoopDestroyed),
             Suspended => Some(Suspended),

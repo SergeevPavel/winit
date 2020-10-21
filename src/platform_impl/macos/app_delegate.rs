@@ -44,6 +44,12 @@ lazy_static! {
             open_files as extern "C" fn(&Object, Sel, id, id)
         );
 
+        decl.add_method(
+                    sel!(application:openUrls:),
+                    open_urls as extern "C" fn(&Object, Sel, id, id)
+        );
+
+
         AppDelegateClass(decl.register())
     };
 }
@@ -111,4 +117,23 @@ extern "C" fn open_files(_this: &Object, _: Sel, app: id, files: id) {
         AppState::queue_event(EventWrapper::StaticEvent(OpenFilesEvent(paths)));
     }
     trace!("Completed `application:openFiles:`");
+}
+
+extern "C" fn open_urls(_this: &Object, _: Sel, app: id, urls: id) {
+    trace!("Triggered `application:openUrls:`");
+    use cocoa::foundation::NSFastEnumeration;
+
+    let mut url_strings: Vec<String> = Vec::new();
+    for url in unsafe { urls.iter() } {
+        use cocoa::foundation::NSString;
+        use std::ffi::CStr;
+        unsafe {
+            let url_string: id = msg_send![url, absoluteString];
+            let utf8string = NSString::UTF8String(url_string);
+            let str = CStr::from_ptr(utf8string).to_string_lossy().into_owned();
+            url_strings.push(str);
+        }
+    }
+    AppState::queue_event(EventWrapper::StaticEvent(OpenFilesEvent(url_strings)));
+    trace!("Completed `application:openUrls:`");
 }
