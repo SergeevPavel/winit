@@ -148,6 +148,28 @@ impl<T: 'static> EventLoop<T> {
                             );
                         }
                     }
+                    Event::WindowHasFocus => {
+                        call_event_handler!(
+                            event_handler,
+                            self.window_target(),
+                            control_flow,
+                            event::Event::WindowEvent {
+                                window_id: window::WindowId(WindowId),
+                                event: event::WindowEvent::Focused(true),
+                            }
+                        );
+                    }
+                    Event::WindowLostFocus => {
+                        call_event_handler!(
+                            event_handler,
+                            self.window_target(),
+                            control_flow,
+                            event::Event::WindowEvent {
+                                window_id: window::WindowId(WindowId),
+                                event: event::WindowEvent::Focused(false),
+                            }
+                        );
+                    }
                     _ => {}
                 },
                 Some(EventSource::InputQueue) => {
@@ -211,9 +233,7 @@ impl<T: 'static> EventLoop<T> {
                         );
                     }
                 }
-                None => {
-                    control_flow = ControlFlow::Exit;
-                }
+                None => {}
             }
 
             call_event_handler!(
@@ -258,6 +278,11 @@ impl<T: 'static> EventLoop<T> {
                     break 'event_loop;
                 }
                 ControlFlow::Poll => {
+                    self.first_event = poll(
+                        self.looper
+                            .poll_all_timeout(Duration::from_millis(0))
+                            .unwrap(),
+                    );
                     self.start_cause = event::StartCause::Poll;
                 }
                 ControlFlow::Wait => {
@@ -295,16 +320,6 @@ impl<T: 'static> EventLoop<T> {
         &self.window_target
     }
 
-    pub fn primary_monitor(&self) -> MonitorHandle {
-        MonitorHandle
-    }
-
-    pub fn available_monitors(&self) -> VecDeque<MonitorHandle> {
-        let mut v = VecDeque::with_capacity(1);
-        v.push_back(self.primary_monitor());
-        v
-    }
-
     pub fn create_proxy(&self) -> EventLoopProxy<T> {
         EventLoopProxy {
             queue: self.user_queue.clone(),
@@ -337,6 +352,20 @@ impl<T> Clone for EventLoopProxy<T> {
 
 pub struct EventLoopWindowTarget<T: 'static> {
     _marker: std::marker::PhantomData<T>,
+}
+
+impl<T: 'static> EventLoopWindowTarget<T> {
+    pub fn primary_monitor(&self) -> Option<monitor::MonitorHandle> {
+        Some(monitor::MonitorHandle {
+            inner: MonitorHandle,
+        })
+    }
+
+    pub fn available_monitors(&self) -> VecDeque<MonitorHandle> {
+        let mut v = VecDeque::with_capacity(1);
+        v.push_back(MonitorHandle);
+        v
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
@@ -376,8 +405,10 @@ impl Window {
         WindowId
     }
 
-    pub fn primary_monitor(&self) -> MonitorHandle {
-        MonitorHandle
+    pub fn primary_monitor(&self) -> Option<monitor::MonitorHandle> {
+        Some(monitor::MonitorHandle {
+            inner: MonitorHandle,
+        })
     }
 
     pub fn available_monitors(&self) -> VecDeque<MonitorHandle> {
@@ -386,10 +417,10 @@ impl Window {
         v
     }
 
-    pub fn current_monitor(&self) -> monitor::MonitorHandle {
-        monitor::MonitorHandle {
+    pub fn current_monitor(&self) -> Option<monitor::MonitorHandle> {
+        Some(monitor::MonitorHandle {
             inner: MonitorHandle,
-        }
+        })
     }
 
     pub fn scale_factor(&self) -> f64 {
@@ -417,7 +448,7 @@ impl Window {
     }
 
     pub fn set_inner_size(&self, _size: Size) {
-        panic!("Cannot set window size on Android");
+        warn!("Cannot set window size on Android");
     }
 
     pub fn outer_size(&self) -> PhysicalSize<u32> {
@@ -439,7 +470,7 @@ impl Window {
     pub fn set_maximized(&self, _maximized: bool) {}
 
     pub fn set_fullscreen(&self, _monitor: Option<window::Fullscreen>) {
-        panic!("Cannot set fullscreen on Android");
+        warn!("Cannot set fullscreen on Android");
     }
 
     pub fn fullscreen(&self) -> Option<window::Fullscreen> {

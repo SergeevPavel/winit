@@ -15,9 +15,7 @@ use stdweb::web::event::{
     PointerOutEvent, PointerOverEvent, PointerUpEvent,
 };
 use stdweb::web::html_element::CanvasElement;
-use stdweb::web::{
-    document, EventListenerHandle, IChildNode, IElement, IEventTarget, IHtmlElement,
-};
+use stdweb::web::{document, EventListenerHandle, IElement, IEventTarget, IHtmlElement};
 
 pub struct Canvas {
     /// Note: resizing the CanvasElement should go through `backend::set_canvas_size` to ensure the DPI factor is maintained.
@@ -35,12 +33,6 @@ pub struct Canvas {
     on_mouse_wheel: Option<EventListenerHandle>,
     on_fullscreen_change: Option<EventListenerHandle>,
     wants_fullscreen: Rc<RefCell<bool>>,
-}
-
-impl Drop for Canvas {
-    fn drop(&mut self) {
-        self.raw.remove();
-    }
 }
 
 impl Canvas {
@@ -200,14 +192,19 @@ impl Canvas {
 
     pub fn on_mouse_press<F>(&mut self, mut handler: F)
     where
-        F: 'static + FnMut(i32, MouseButton, ModifiersState),
+        F: 'static + FnMut(i32, PhysicalPosition<f64>, MouseButton, ModifiersState),
     {
+        let canvas = self.raw.clone();
         self.on_mouse_press = Some(self.add_user_event(move |event: PointerDownEvent| {
             handler(
                 event.pointer_id(),
+                event::mouse_position(&event).to_physical(super::scale_factor()),
                 event::mouse_button(&event),
                 event::mouse_modifiers(&event),
             );
+            canvas
+                .set_pointer_capture(event.pointer_id())
+                .expect("Failed to set pointer capture");
         }));
     }
 
@@ -300,5 +297,9 @@ impl Canvas {
 
     pub fn is_fullscreen(&self) -> bool {
         super::is_fullscreen(&self.raw)
+    }
+
+    pub fn remove_listeners(&mut self) {
+        // TODO: Stub, unimplemented (see web_sys for reference).
     }
 }
