@@ -6,7 +6,7 @@ use objc::{
 };
 use std::os::raw::c_void;
 use crate::platform_impl::platform::event::EventWrapper;
-use crate::event::Event::OpenFilesEvent;
+use crate::event::Event::{OpenFilesEvent, OpenUrlsEvent};
 use std::path::Path;
 
 pub struct AppDelegateClass(pub *const Class);
@@ -45,7 +45,7 @@ lazy_static! {
         );
 
         decl.add_method(
-                    sel!(application:openUrls:),
+                    sel!(application:openURLs:),
                     open_urls as extern "C" fn(&Object, Sel, id, id)
         );
 
@@ -134,6 +134,6 @@ extern "C" fn open_urls(_this: &Object, _: Sel, app: id, urls: id) {
             url_strings.push(str);
         }
     }
-    AppState::queue_event(EventWrapper::StaticEvent(OpenFilesEvent(url_strings)));
+    AppState::queue_event(EventWrapper::StaticEvent(OpenUrlsEvent(url_strings)));
     trace!("Completed `application:openUrls:`");
 }
