@@ -136,6 +136,7 @@ impl<T> WindowTarget<T> {
                 event: WindowEvent::CursorMoved {
                     device_id: DeviceId(device::Id(pointer_id)),
                     position,
+                    screen_relative_position: None, // TODO
                     modifiers,
                 },
             });
@@ -152,6 +153,7 @@ impl<T> WindowTarget<T> {
                     event: WindowEvent::CursorMoved {
                         device_id: DeviceId(device::Id(pointer_id)),
                         position,
+                        screen_relative_position: None, // TODO
                         modifiers,
                     },
                 })

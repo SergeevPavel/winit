@@ -7,7 +7,7 @@ use std::{
 };
 
 use cocoa::{
-    appkit::{NSApp, NSEvent, NSEventModifierFlags, NSEventPhase, NSView, NSWindow},
+    appkit::{NSApp, NSEvent, NSEventModifierFlags, NSEventPhase, NSView, NSWindow, NSScreen},
     base::{id, nil},
     foundation::{NSInteger, NSPoint, NSRect, NSSize, NSString, NSUInteger},
 };
@@ -954,12 +954,18 @@ fn mouse_motion(this: &Object, event: id) {
         let logical_position = LogicalPosition::new(x, y);
 
         update_potentially_stale_modifiers(state, event);
+        let mouse_location = cocoa::appkit::NSEvent::mouseLocation(event);
+        let screen_height = cocoa::appkit::NSScreen::frame(event.window().screen()).size.height;
+        let screen_relative_position = LogicalPosition::new(mouse_location.x,
+                                                            screen_height - mouse_location.y)
+            .to_physical(state.get_scale_factor());
 
         let window_event = Event::WindowEvent {
             window_id: WindowId(get_window_id(state.ns_window)),
             event: WindowEvent::CursorMoved {
                 device_id: DEVICE_ID,
                 position: logical_position.to_physical(state.get_scale_factor()),
+                screen_relative_position: Some(screen_relative_position),
                 modifiers: event_mods(event),
             },
         };

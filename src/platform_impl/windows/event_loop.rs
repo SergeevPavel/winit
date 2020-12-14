@@ -1036,6 +1036,7 @@ unsafe extern "system" fn public_window_callback<T: 'static>(
                     event: CursorMoved {
                         device_id: DEVICE_ID,
                         position,
+                        screen_relative_position: None, // TODO
                         modifiers: event::get_key_mods(),
                     },
                 });

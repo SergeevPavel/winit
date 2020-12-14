@@ -74,6 +74,7 @@ pub(super) fn handle_pointer(
                         DeviceId,
                     )),
                     position,
+                    screen_relative_position: None, // TODO
                     modifiers: *pointer_data.modifiers_state.borrow(),
                 },
                 window_id,
@@ -129,6 +130,7 @@ pub(super) fn handle_pointer(
                         DeviceId,
                     )),
                     position,
+                    screen_relative_position: None, // TODO
                     modifiers: *pointer_data.modifiers_state.borrow(),
                 },
                 window_id,

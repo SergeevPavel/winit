@@ -736,6 +736,7 @@ impl<T: 'static> EventProcessor<T> {
                                 event: CursorMoved {
                                     device_id,
                                     position,
+                                    screen_relative_position: None, // TODO
                                     modifiers,
                                 },
                             });
@@ -855,6 +856,7 @@ impl<T: 'static> EventProcessor<T> {
                                 event: CursorMoved {
                                     device_id,
                                     position,
+                                    screen_relative_position: None, // TODO
                                     modifiers,
                                 },
                             });
@@ -919,6 +921,7 @@ impl<T: 'static> EventProcessor<T> {
                                 event: CursorMoved {
                                     device_id: mkdid(pointer_id),
                                     position,
+                                    screen_relative_position: None, // TODO
                                     modifiers,
                                 },
                             });
@@ -993,6 +996,7 @@ impl<T: 'static> EventProcessor<T> {
                                     event: WindowEvent::CursorMoved {
                                         device_id: mkdid(util::VIRTUAL_CORE_POINTER),
                                         position: location.cast(),
+                                        screen_relative_position: None, // TODO
                                         modifiers,
                                     },
                                 });

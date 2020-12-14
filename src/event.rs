@@ -288,6 +288,7 @@ pub enum WindowEvent<'a> {
         /// limited by the display area and it may have been transformed by the OS to implement effects such as cursor
         /// acceleration, it should not be used to implement non-cursor-like interactions such as 3D camera control.
         position: PhysicalPosition<f64>,
+        screen_relative_position: Option<PhysicalPosition<f64>>,
         #[deprecated = "Deprecated in favor of WindowEvent::ModifiersChanged"]
         modifiers: ModifiersState,
     },
@@ -392,10 +393,12 @@ impl Clone for WindowEvent<'static> {
             CursorMoved {
                 device_id,
                 position,
+                screen_relative_position,
                 modifiers,
             } => CursorMoved {
                 device_id: *device_id,
                 position: *position,
+                screen_relative_position: *screen_relative_position,
                 modifiers: *modifiers,
             },
             CursorEntered { device_id } => CursorEntered {
@@ -482,10 +485,12 @@ impl<'a> WindowEvent<'a> {
             CursorMoved {
                 device_id,
                 position,
+                screen_relative_position,
                 modifiers,
             } => Some(CursorMoved {
                 device_id,
                 position,
+                screen_relative_position,
                 modifiers,
             }),
             CursorEntered { device_id } => Some(CursorEntered { device_id }),
