@@ -955,9 +955,11 @@ fn mouse_motion(this: &Object, event: id) {
 
         update_potentially_stale_modifiers(state, event);
         let mouse_location = cocoa::appkit::NSEvent::mouseLocation(event);
-        let screen_height = cocoa::appkit::NSScreen::frame(event.window().screen()).size.height;
+        let screen_frame = cocoa::appkit::NSScreen::frame(event.window().screen());
+        let screen_height = screen_frame.size.height;
+        let screen_y = screen_frame.origin.y;
         let screen_relative_position = LogicalPosition::new(mouse_location.x,
-                                                            screen_height - mouse_location.y)
+                                                            (screen_y + screen_height) - mouse_location.y)
             .to_physical(state.get_scale_factor());
 
         let window_event = Event::WindowEvent {
