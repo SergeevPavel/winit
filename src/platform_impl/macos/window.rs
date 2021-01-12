@@ -466,7 +466,9 @@ impl UnownedWindow {
     }
 
     pub fn request_redraw(&self) {
-        AppState::queue_redraw(RootWindowId(self.id()));
+
+        unsafe { self.ns_window.contentView().display_(); }
+        // AppState::queue_redraw(RootWindowId(self.id()));
     }
 
     pub fn outer_position(&self) -> Result<PhysicalPosition<i32>, NotSupportedError> {

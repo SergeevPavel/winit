@@ -31,6 +31,7 @@ use crate::{
     },
     window::WindowId,
 };
+use crate::event::Event::RedrawRequested;
 
 lazy_static! {
     static ref HANDLER: Handler = Default::default();
@@ -167,13 +168,20 @@ impl Handler {
     }
 
     fn handle_nonuser_event(&self, wrapper: EventWrapper) {
-        if let Some(ref mut callback) = *self.callback.lock().unwrap() {
-            match wrapper {
-                EventWrapper::StaticEvent(event) => {
-                    callback.handle_nonuser_event(event, &mut *self.control_flow.lock().unwrap())
+        if let Ok(mut maybe_callback) = self.callback.try_lock() {
+            if let Some(ref mut callback) = *maybe_callback {
+                match wrapper {
+                    EventWrapper::StaticEvent(event) => {
+                        if let RedrawRequested(_) = event {
+                            log::info!("Handle redraw requested: {:?}", event)
+                        }
+                        callback.handle_nonuser_event(event, &mut *self.control_flow.lock().unwrap())
+                    }
+                    EventWrapper::EventProxy(proxy) => self.handle_proxy(proxy, callback),
                 }
-                EventWrapper::EventProxy(proxy) => self.handle_proxy(proxy, callback),
             }
+        } else {
+            log::info!("Reentrant event handling: {:?}", wrapper);
         }
     }
 
@@ -297,25 +305,35 @@ impl AppState {
     }
 
     // This is called from multiple threads at present
-    pub fn queue_redraw(window_id: WindowId) {
-        let mut pending_redraw = HANDLER.redraw();
-        if !pending_redraw.contains(&window_id) {
-            pending_redraw.push(window_id);
+    pub fn draw_now(window_id: WindowId) {
+        if !unsafe { msg_send![class!(NSThread), isMainThread] } {
+            panic!("Event queued from different thread");
         }
+
+        log::info!("Redraw nsview {:?}", window_id);
+        HANDLER.handle_nonuser_event(EventWrapper::StaticEvent(Event::RedrawRequested(window_id)));
+        // let mut pending_redraw = HANDLER.redraw();
+        // if !pending_redraw.contains(&window_id) {
+        //     pending_redraw.push(window_id);
+        // }
     }
 
     pub fn queue_event(wrapper: EventWrapper) {
         if !unsafe { msg_send![class!(NSThread), isMainThread] } {
             panic!("Event queued from different thread: {:#?}", wrapper);
         }
-        HANDLER.events().push_back(wrapper);
+        HANDLER.handle_nonuser_event(wrapper);
+        // HANDLER.events().push_back(wrapper);
     }
 
     pub fn queue_events(mut wrappers: VecDeque<EventWrapper>) {
         if !unsafe { msg_send![class!(NSThread), isMainThread] } {
             panic!("Events queued from different thread: {:#?}", wrappers);
         }
-        HANDLER.events().append(&mut wrappers);
+        for e in wrappers {
+            HANDLER.handle_nonuser_event(e);
+        }
+        // HANDLER.events().append(&mut wrappers);
     }
 
     pub fn cleared() {
@@ -325,15 +343,15 @@ impl AppState {
         if !HANDLER.get_in_callback() {
             HANDLER.set_in_callback(true);
             HANDLER.handle_user_events();
-            for event in HANDLER.take_events() {
-                HANDLER.handle_nonuser_event(event);
-            }
-            HANDLER.handle_nonuser_event(EventWrapper::StaticEvent(Event::MainEventsCleared));
-            for window_id in HANDLER.should_redraw() {
-                HANDLER.handle_nonuser_event(EventWrapper::StaticEvent(Event::RedrawRequested(
-                    window_id,
-                )));
-            }
+            // for event in HANDLER.take_events() {
+            //     HANDLER.handle_nonuser_event(event);
+            // }
+            // HANDLER.handle_nonuser_event(EventWrapper::StaticEvent(Event::MainEventsCleared));
+            // for window_id in HANDLER.should_redraw() {
+            //     HANDLER.handle_nonuser_event(EventWrapper::StaticEvent(Event::RedrawRequested(
+            //         window_id,
+            //     )));
+            // }
             HANDLER.handle_nonuser_event(EventWrapper::StaticEvent(Event::RedrawEventsCleared));
             HANDLER.set_in_callback(false);
         }
