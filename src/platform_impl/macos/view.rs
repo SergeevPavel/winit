@@ -524,15 +524,10 @@ fn insert_text_inner(this: &Object, string: *mut Object) {
         let string = str::from_utf8_unchecked(slice);
         let event: id = msg_send![NSApp(), currentEvent];
         let marked_text: id = *this.get_ivar("markedText");
-        let trim: usize;
-        if marked_text.length() > 0 || !state.is_key_down {
-            trim = 1;
-        } else {
-            trim = 0;
-        }
+        let trim: usize = marked_text.length() as usize;
         let mut events = VecDeque::with_capacity(characters.len() + trim as usize);
         #[allow(deprecated)]
-        if trim > 0 {
+        for _ in 0..trim {
             // it's better to send marked text as a special event so the client will be able to
             // highlight the symbol and handle next insert with removal
             // instead we send it as a regular keyboard input and just trim it here
@@ -542,7 +537,7 @@ fn insert_text_inner(this: &Object, string: *mut Object) {
                     device_id: DEVICE_ID,
                     input: KeyboardInput {
                         state: ElementState::Pressed,
-                        scancode: 0x08,
+                        scancode: 0x33,
                         virtual_keycode: Some(VirtualKeyCode::Back),
                         modifiers: event_mods(event),
                     },
@@ -556,7 +551,6 @@ fn insert_text_inner(this: &Object, string: *mut Object) {
                 event: WindowEvent::ReceivedCharacter(character),
             }));
         }
-
         AppState::queue_events(events);
     }
 }
@@ -696,21 +690,13 @@ extern "C" fn key_down(this: &Object, _sel: Sel, event: id) {
                 is_synthetic: false,
             },
         };
-        let is_repeat: BOOL = msg_send![event, isARepeat];
-        let responds_to_im: BOOL = msg_send![event, respondsToSelector: sel!(willBeHandledByComplexInputMethod)];
-        let will_be_handled_by_im: BOOL =
-            if responds_to_im == YES { msg_send![event, willBeHandledByComplexInputMethod] }
-            else { NO };
-        let was_key_down = state.is_key_down;
-        state.is_key_down = will_be_handled_by_im == NO;
+        let is_repeat = msg_send![event, isARepeat];
         let array: id = msg_send![class!(NSArray), arrayWithObject: event];
         let _: () = msg_send![this, interpretKeyEvents: array];
 
-        if (will_be_handled_by_im == NO) {
-            AppState::queue_event(EventWrapper::StaticEvent(window_event));
-        }
+        AppState::queue_event(EventWrapper::StaticEvent(window_event));
 
-        if is_repeat == YES && will_be_handled_by_im == NO {
+        if is_repeat {
             for character in characters.chars().filter(|c| !is_corporate_character(*c)) {
                 AppState::queue_event(EventWrapper::StaticEvent(Event::WindowEvent {
                     window_id,
