@@ -166,6 +166,20 @@ impl Handler {
         self.in_callback.store(in_callback, Ordering::Release);
     }
 
+    fn try_handle_nonuser_event_now(&self, wrapper: EventWrapper) -> Option<EventWrapper> {
+        if let Ok(mut maybe_callback) = self.callback.try_lock() {
+            if let Some(ref mut callback) = *maybe_callback {
+                match wrapper {
+                    EventWrapper::StaticEvent(event) => {
+                        callback.handle_nonuser_event(event, &mut *self.control_flow.lock().unwrap())
+                    }
+                    EventWrapper::EventProxy(proxy) => self.handle_proxy(proxy, callback),
+                }
+            }
+            None
+        } else { Some(wrapper) }
+    }
+
     fn handle_nonuser_event(&self, wrapper: EventWrapper) {
         if let Some(ref mut callback) = *self.callback.lock().unwrap() {
             match wrapper {
@@ -304,18 +318,28 @@ impl AppState {
         }
     }
 
+    pub fn try_redraw_now(window_id: WindowId) {
+        if let Some(_) = HANDLER.try_handle_nonuser_event_now(EventWrapper::StaticEvent(Event::RedrawRequested(window_id))) {
+            AppState::queue_redraw(window_id)
+        }
+    }
+
     pub fn queue_event(wrapper: EventWrapper) {
         if !unsafe { msg_send![class!(NSThread), isMainThread] } {
             panic!("Event queued from different thread: {:#?}", wrapper);
         }
-        HANDLER.events().push_back(wrapper);
+        if let Some(event) = HANDLER.try_handle_nonuser_event_now(wrapper) {
+            HANDLER.events().push_back(event);
+        }
     }
 
     pub fn queue_events(mut wrappers: VecDeque<EventWrapper>) {
         if !unsafe { msg_send![class!(NSThread), isMainThread] } {
             panic!("Events queued from different thread: {:#?}", wrappers);
         }
-        HANDLER.events().append(&mut wrappers);
+        for wrapper in wrappers {
+            AppState::queue_event(wrapper)
+        }
     }
 
     pub fn cleared() {
