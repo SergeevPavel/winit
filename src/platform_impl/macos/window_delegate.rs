@@ -507,6 +507,7 @@ extern "C" fn window_did_enter_fullscreen(this: &Object, _: Sel, _: id) {
                 window.set_fullscreen(target_fullscreen);
             }
         });
+        state.emit_event(WindowEvent::ChangedFullscreen(true));
     });
     trace!("Completed `windowDidEnterFullscreen:`");
 }
@@ -528,7 +529,8 @@ extern "C" fn window_did_exit_fullscreen(this: &Object, _: Sel, _: id) {
             if let Some(target_fullscreen) = target_fullscreen {
                 window.set_fullscreen(target_fullscreen);
             }
-        })
+        });
+        state.emit_event(WindowEvent::ChangedFullscreen(false));
     });
     trace!("Completed `windowDidExitFullscreen:`");
 }

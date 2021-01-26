@@ -219,6 +219,12 @@ pub enum StartCause {
 /// Describes an event from a `Window`.
 #[derive(Debug, PartialEq)]
 pub enum WindowEvent<'a> {
+    /// The window has entered or exited fullscreen mode. Works only for macOS for now.
+    ///
+    /// The parameter is true if the window has entered fullscreen, and false if it has exited
+    /// fullscreen.
+    ChangedFullscreen(bool),
+
     /// The size of the window has changed. Contains the client area's new dimensions.
     Resized(PhysicalSize<u32>),
 
@@ -453,7 +459,8 @@ impl Clone for WindowEvent<'static> {
             ThemeChanged(theme) => ThemeChanged(theme.clone()),
             ScaleFactorChanged { .. } => {
                 unreachable!("Static event can't be about scale factor changing")
-            }
+            },
+            ChangedFullscreen(f) => ChangedFullscreen(*f)
         };
     }
 }
@@ -471,6 +478,7 @@ impl<'a> WindowEvent<'a> {
             HoveredFileCancelled => Some(HoveredFileCancelled),
             ReceivedCharacter(c) => Some(ReceivedCharacter(c)),
             Focused(focused) => Some(Focused(focused)),
+            ChangedFullscreen(fullscreen) => Some(ChangedFullscreen(fullscreen)),
             KeyboardInput {
                 device_id,
                 input,
