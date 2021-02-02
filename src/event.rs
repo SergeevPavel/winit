@@ -120,6 +120,8 @@ pub enum Event<'a, T: 'static> {
     /// This is irreversable - if this event is emitted, it is guaranteed to be the last event that
     /// gets emitted. You generally want to treat this as an "do on quit" event.
     LoopDestroyed,
+
+    Quit,
 }
 
 impl<T: Clone> Clone for Event<'static, T> {
@@ -144,6 +146,7 @@ impl<T: Clone> Clone for Event<'static, T> {
             LoopDestroyed => LoopDestroyed,
             Suspended => Suspended,
             Resumed => Resumed,
+            Quit => Quit,
         }
     }
 }
@@ -164,6 +167,7 @@ impl<'a, T> Event<'a, T> {
             LoopDestroyed => Ok(LoopDestroyed),
             Suspended => Ok(Suspended),
             Resumed => Ok(Resumed),
+            Quit => Ok(Quit),
         }
     }
 
@@ -186,6 +190,7 @@ impl<'a, T> Event<'a, T> {
             LoopDestroyed => Some(LoopDestroyed),
             Suspended => Some(Suspended),
             Resumed => Some(Resumed),
+            Quit => Some(Quit),
         }
     }
 }

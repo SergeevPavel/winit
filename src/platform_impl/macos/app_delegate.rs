@@ -6,8 +6,9 @@ use objc::{
 };
 use std::os::raw::c_void;
 use crate::platform_impl::platform::event::EventWrapper;
-use crate::event::Event::{OpenFilesEvent, OpenUrlsEvent};
+use crate::event::Event::{OpenFilesEvent, OpenUrlsEvent, Quit};
 use std::path::Path;
+use cocoa::appkit::NSApplicationTerminateReply;
 
 pub struct AppDelegateClass(pub *const Class);
 unsafe impl Send for AppDelegateClass {}
@@ -45,8 +46,12 @@ lazy_static! {
         );
 
         decl.add_method(
-                    sel!(application:openURLs:),
-                    open_urls as extern "C" fn(&Object, Sel, id, id)
+            sel!(application:openURLs:),
+            open_urls as extern "C" fn(&Object, Sel, id, id)
+        );
+        decl.add_method(
+            sel!(applicationShouldTerminate:),
+            should_terminate as extern "C" fn(&Object, Sel, id) -> i32
         );
 
 
@@ -76,6 +81,13 @@ extern "C" fn did_finish_launching(_: &Object, _: Sel, _: id) {
     trace!("Triggered `applicationDidFinishLaunching`");
     AppState::launched();
     trace!("Completed `applicationDidFinishLaunching`");
+}
+
+extern "C" fn should_terminate(_: &Object, _: Sel, _: id) -> i32 {
+    trace!("Triggered `applicationShouldTerminate`");
+    AppState::queue_event(EventWrapper::StaticEvent(Quit));
+    trace!("Completed `applicationShouldTerminate`");
+    NSApplicationTerminateReply::NSTerminateCancel as i32
 }
 
 extern "C" fn did_become_active(this: &Object, _: Sel, _: id) {
