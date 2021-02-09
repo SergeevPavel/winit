@@ -189,8 +189,14 @@ pub unsafe fn order_out_async(ns_window: id) {
 // actually works, but with an odd delay.
 pub unsafe fn make_key_and_order_front_async(ns_window: id) {
     let ns_window = MainThreadSafe(ns_window);
+    // hack to avoid segfault: when creating and then destroying windows rapidly the race happens –
+    // the callback below is being executed after dropping the window when 0 references left and
+    // `ns_window` is released, thus we increment reference count and then decrement it to avoid
+    // calling `makeKeyAndOrderFront` on released object
+    let () = msg_send![ns_window.0, retain];
     Queue::main().exec_async(move || {
         ns_window.makeKeyAndOrderFront_(nil);
+        let () = msg_send![ns_window.0, release];
     });
 }
 
