@@ -1030,13 +1030,17 @@ unsafe extern "system" fn public_window_callback<T: 'static>(
             }
             if cursor_moved {
                 update_modifiers(window, subclass_input);
-
+                let cursor_pos = {
+                    let mut pos = mem::zeroed();
+                    winuser::GetCursorPos(&mut pos);
+                    pos
+                };
                 subclass_input.send_event(Event::WindowEvent {
                     window_id: RootWindowId(WindowId(window)),
                     event: CursorMoved {
                         device_id: DEVICE_ID,
                         position,
-                        screen_relative_position: None, // TODO
+                        screen_relative_position: Some(PhysicalPosition::new(cursor_pos.x as f64, cursor_pos.y as f64)),
                         modifiers: event::get_key_mods(),
                     },
                 });
